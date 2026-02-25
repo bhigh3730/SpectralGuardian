@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="30dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SPECTRAL INITIALIZATION"
+        android:textColor="#0099FF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.1" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="Configure stealth protocols before deployment."
+        android:textColor="#888888"
+        android:textSize="12sp"
+        android:gravity="center" />
+
+    <Button
+        android:id="@+id/btnGrantOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:backgroundTint="#222222"
+        android:text="1. Grant Overlay Permission"
+        android:textColor="#FFFFFF" />
+
+    <Button
+        android:id="@+id/btnBatteryOpt"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:backgroundTint="#222222"
+        android:text="2. Ignore Battery Optimization"
+        android:textColor="#FFFFFF" />
+
+    <Button
+        android:id="@+id/btnStartService"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:backgroundTint="#222222"
+        android:text="3. Start Guardian Service"
+        android:textColor="#FFFFFF" />
+
+    <Button
+        android:id="@+id/btnHideApp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:backgroundTint="#ff0033"
+        android:text="FINALIZE &amp; HIDE ICON"
+        android:textColor="#FFFFFF" />
+
+</LinearLayout>

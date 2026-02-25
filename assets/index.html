@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spectral Matrix</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Oxanium', monospace;
+            color: #fff;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Launcher Mode Styles */
+        #launcher-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+            width: 90%;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.45);
+            padding: 2rem;
+            border-radius: 8px;
+            backdrop-filter: blur(2px);
+            transition: opacity 0.5s ease, filter 0.8s ease;
+        }
+
+        #launcher-overlay h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            letter-spacing: 0.5rem;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
+        }
+
+        .tagline {
+            font-size: 0.8rem;
+            margin-top: 1rem;
+            letter-spacing: 0.2rem;
+            opacity: 0.8;
+            font-weight: 300;
+        }
+
+        /* Dashboard Mode Styles */
+        #dashboard {
+            position: relative;
+            z-index: 20;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            display: none; /* Hidden by default */
+            height: 100vh;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.85);
+        }
+
+        .header {
+            border-bottom: 1px solid #333;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            letter-spacing: 0.3rem;
+            color: #ff0033;
+        }
+
+        .status-pill {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.6rem;
+            border: 1px solid #0099FF;
+            color: #0099FF;
+            border-radius: 100px;
+            text-transform: uppercase;
+        }
+
+        .section {
+            margin-bottom: 2.5rem;
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            color: #888;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #222;
+            margin-left: 1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .card {
+            background: #0a0a0a;
+            border: 1px solid #1a1a1a;
+            padding: 1.5rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .card:active {
+            background: #111;
+            border-color: #333;
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 0.9rem;
+            letter-spacing: 0.1rem;
+            color: #0099FF;
+        }
+
+        .card p {
+            margin: 0.5rem 0 0;
+            font-size: 0.7rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .log-box {
+            background: #050505;
+            border: 1px solid #111;
+            height: 150px;
+            overflow-y: auto;
+            padding: 1rem;
+            font-size: 0.7rem;
+            font-family: monospace;
+            color: #444;
+        }
+
+        .log-entry {
+            margin-bottom: 0.4rem;
+            border-left: 2px solid #222;
+            padding-left: 0.5rem;
+        }
+
+        .log-entry.alert {
+            color: #ff0033;
+            border-color: #ff0033;
+        }
+
+        .btn-close {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 50px;
+            height: 50px;
+            background: #ff0033;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(255, 0, 51, 0.4);
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        /* Glitch Pulse Effect */
+        .glitch-pulse {
+            filter: brightness(1.8) !important;
+        }
+
+        /* Stealth Zone */
+        #zone-right {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 25%;
+            height: 15%;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix"></canvas>
+    
+    <!-- MODE 1: Launcher -->
+    <div id="launcher-overlay">
+        <h1>BENJAMIN HIGHTOWER</h1>
+        <div class="tagline">CONTENT CREATOR • DIGITAL ALCHEMIST • SONIC ARCHITECT</div>
+    </div>
+
+    <!-- MODE 2: Dashboard -->
+    <div id="dashboard">
+        <div class="header">
+            <div>
+                <h1>SPECTRAL</h1>
+                <div style="font-size: 0.6rem; color: #666; letter-spacing: 0.1rem;">AUTHOR: BENJAMIN HIGHTOWER</div>
+            </div>
+            <div class="status-pill">System: Secure</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Security Protocols</div>
+            <div class="grid">
+                <div class="card" onclick="toggleVpn()">
+                    <h3>Port Shield</h3>
+                    <p>Active VPN tunnel blocking 5900, 3389, 5555.</p>
+                </div>
+                <div class="card" onclick="scanApps()">
+                    <h3>Risk Scanner</h3>
+                    <p>Audit installed packages for risky permissions.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Traffic Analysis</div>
+            <div class="log-box" id="log-box">
+                <div class="log-entry">[INITIALIZED] SpectralShield active.</div>
+            </div>
+        </div>
+
+        <div class="btn-close" onclick="closeDashboard()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+    </div>
+
+    <!-- Hidden Stealth Touch Zone -->
+    <div id="zone-right"></div>
+
+    <script>
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        const launcherOverlay = document.getElementById('launcher-overlay');
+        const dashboard = document.getElementById('dashboard');
+        const logBox = document.getElementById('log-box');
+
+        let width, height, columns;
+        const fontSize = 16;
+        let drops = [];
+        let speeds = [];
+        
+        const CYAN_MAIN = '#0099FF';
+        const CYAN_HEAD = '#FFFFFF';
+        const RED_MAIN = '#ff0033';
+        const RED_HEAD = '#FFFFFF';
+
+        let isRedMode = localStorage.getItem('spectral_matrix_red_mode') === 'true';
+        let isDashboardOpen = false;
+
+        const chars = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ1234567890$+-*/=%\"'#&_(),.;:?!";
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            columns = Math.min(Math.floor(width / fontSize), 80);
+            drops = [];
+            speeds = [];
+            for (let i = 0; i < columns; i++) {
+                drops[i] = Math.random() * -100;
+                speeds[i] = 0.8 + Math.random() * 0.7;
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+            ctx.fillRect(0, 0, width, height);
+
+            const mainColor = isRedMode ? RED_MAIN : CYAN_MAIN;
+            const headColor = isRedMode ? RED_HEAD : CYAN_HEAD;
+            
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillStyle = headColor;
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                ctx.fillStyle = mainColor;
+                ctx.fillText(text, i * fontSize, (drops[i] - 1) * fontSize);
+                drops[i] += speeds[i];
+                if (drops[i] * fontSize > height && Math.random() > 0.975) drops[i] = 0;
+            }
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', init);
+        init();
+        draw();
+
+        // --- Stealth Gesture Logic ---
+        let tapCount = 0;
+        let lastTapTime = 0;
+        let gestureTimeout = null;
+
+        const zoneRight = document.getElementById('zone-right');
+
+        zoneRight.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const now = Date.now();
+            if (now - lastTapTime > 5000) tapCount = 0;
+            tapCount++;
+            lastTapTime = now;
+            
+            if (gestureTimeout) clearTimeout(gestureTimeout);
+            
+            if (tapCount >= 5) {
+                activateShield();
+                tapCount = 0;
+            } else {
+                gestureTimeout = setTimeout(() => tapCount = 0, 5000);
+            }
+        });
+
+        function activateShield() {
+            isRedMode = true;
+            localStorage.setItem('spectral_matrix_red_mode', 'true');
+            
+            // Glitch Pulse
+            launcherOverlay.classList.add('glitch-pulse');
+            setTimeout(() => {
+                launcherOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    launcherOverlay.style.display = 'none';
+                    dashboard.style.display = 'block';
+                    isDashboardOpen = true;
+                }, 500);
+            }, 800);
+
+            // Notify Android Bridge to launch native shield if available
+            if (window.SpectralNative && window.SpectralNative.onUnlock) {
+                window.SpectralNative.onUnlock();
+            }
+        }
+
+        function closeDashboard() {
+            dashboard.style.display = 'none';
+            launcherOverlay.style.display = 'block';
+            launcherOverlay.style.opacity = '1';
+            isDashboardOpen = false;
+            if (window.SpectralNative && window.SpectralNative.closeInterface) {
+                window.SpectralNative.closeInterface();
+            }
+        }
+
+        // Bridge Functions
+        function toggleVpn() {
+            if (window.SpectralNative) window.SpectralNative.toggleVpn();
+            addLog("VPN Toggle Requested");
+        }
+        function scanApps() {
+            if (window.SpectralNative) window.SpectralNative.getRiskApps();
+            addLog("Risk Scan Initiated");
+        }
+        function addLog(msg) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logBox.prepend(entry);
+        }
+
+        // Support for mouse testing
+        zoneRight.addEventListener('mousedown', () => {
+            const now = Date.now();
+            if (now - lastTapTime > 5000) tapCount = 0;
+            tapCount++;
+            lastTapTime = now;
+            if (tapCount >= 5) activateShield();
+        });
+    </script>
+</body>
+</html>
