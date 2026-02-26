@@ -32,9 +32,9 @@ export default function App() {
     let drops: number[] = [];
     let speeds: number[] = [];
     
-    const CYAN_MAIN = '#0099FF';
+    const CYAN_MAIN = '#00FFCC'; // Alien Cyan
     const CYAN_HEAD = '#FFFFFF';
-    const RED_MAIN = '#ff0033';
+    const RED_MAIN = '#FF0033'; // Spectral Red
     const RED_HEAD = '#FFFFFF';
 
     const chars = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ1234567890$+-*/=%\"'#&_(),.;:?!";
@@ -143,18 +143,18 @@ export default function App() {
         >
           <h1 
             className="text-4xl md:text-5xl m-0 tracking-[0.5rem] font-bold transition-all duration-500"
-            style={{ textShadow: '0 0 10px rgba(0, 153, 255, 0.5)' }}
+            style={{ textShadow: '0 0 15px rgba(0, 255, 204, 0.6)' }}
           >
             BENJAMIN HIGHTOWER
           </h1>
-          <div className="text-[0.7rem] md:text-xs mt-4 tracking-[0.2rem] opacity-80 font-light">
+          <div className="text-[0.7rem] md:text-xs mt-4 tracking-[0.2rem] opacity-80 font-light text-[#00FFCC]">
             CONTENT CREATOR • DIGITAL ALCHEMIST • SONIC ARCHITECT
           </div>
           <div className="mt-8 text-sm md:text-base pointer-events-auto">
             <a 
               href="mailto:BHigh3730@gmail.com" 
-              className="transition-all duration-300 relative hover:text-white text-[#0099FF]"
-              style={{ textShadow: '0 0 15px #0099FF' }}
+              className="transition-all duration-300 relative hover:text-white text-[#00FFCC]"
+              style={{ textShadow: '0 0 15px #00FFCC' }}
             >
               BHigh3730@gmail.com
             </a>
@@ -165,27 +165,27 @@ export default function App() {
           <div className="max-w-4xl mx-auto">
             <header className="flex justify-between items-end border-b border-white/10 pb-6 mb-8">
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-[0.3rem] text-[#ff0033] m-0">SPECTRAL</h1>
-                <div className="text-[10px] text-white/40 tracking-widest mt-1">AUTHOR: BENJAMIN HIGHTOWER</div>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-[0.3rem] text-[#FF0033] m-0">SPECTRAL</h1>
+                <div className="text-[10px] text-[#00FFCC] tracking-widest mt-1">AUTHOR: BENJAMIN HIGHTOWER</div>
               </div>
-              <div className="px-3 py-1 border border-[#0099FF] text-[#0099FF] text-[10px] rounded-full uppercase tracking-tighter">
+              <div className="px-3 py-1 border border-[#00FFCC] text-[#00FFCC] text-[10px] rounded-full uppercase tracking-tighter">
                 System: Secure
               </div>
             </header>
 
             <section className="mb-10">
               <div className="flex items-center gap-4 mb-6">
-                <span className="text-[10px] uppercase tracking-[0.2rem] text-white/40">Security Protocols</span>
+                <span className="text-[10px] uppercase tracking-[0.2rem] text-white/40">Sensor Fusion Core</span>
                 <div className="h-px flex-1 bg-white/5" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-white/5 border border-white/10 p-6 rounded-sm hover:bg-white/10 transition-colors cursor-pointer group">
-                  <h3 className="text-sm font-bold tracking-wider text-[#0099FF] m-0 group-hover:text-white transition-colors">Port Shield</h3>
-                  <p className="text-[11px] text-white/40 mt-2 leading-relaxed">Active VPN tunnel blocking 5900, 3389, 5555.</p>
+                  <h3 className="text-sm font-bold tracking-wider text-[#00FFCC] m-0 group-hover:text-white transition-colors">Advanced Port Shield</h3>
+                  <p className="text-[11px] text-white/40 mt-2 leading-relaxed">Universal firewall blocking infiltration ports (5900, 3389, 5555, 22, 135, 445) on any network.</p>
                 </div>
                 <div className="bg-white/5 border border-white/10 p-6 rounded-sm hover:bg-white/10 transition-colors cursor-pointer group">
-                  <h3 className="text-sm font-bold tracking-wider text-[#0099FF] m-0 group-hover:text-white transition-colors">Risk Scanner</h3>
-                  <p className="text-[11px] text-white/40 mt-2 leading-relaxed">Audit installed packages for risky permissions.</p>
+                  <h3 className="text-sm font-bold tracking-wider text-[#00FFCC] m-0 group-hover:text-white transition-colors">Entity Scanner</h3>
+                  <p className="text-[11px] text-white/40 mt-2 leading-relaxed">Real-time EMF, WiFi, and Bluetooth detection with threat assessment.</p>
                 </div>
               </div>
             </section>

@@ -88,14 +88,14 @@
             margin: 0;
             font-size: 1.5rem;
             letter-spacing: 0.3rem;
-            color: #ff0033;
+            color: #FF0033;
         }
 
         .status-pill {
             font-size: 0.7rem;
             padding: 0.2rem 0.6rem;
-            border: 1px solid #0099FF;
-            color: #0099FF;
+            border: 1px solid #00FFCC;
+            color: #00FFCC;
             border-radius: 100px;
             text-transform: uppercase;
         }
@@ -146,7 +146,7 @@
             margin: 0;
             font-size: 0.9rem;
             letter-spacing: 0.1rem;
-            color: #0099FF;
+            color: #00FFCC;
         }
 
         .card p {
@@ -230,15 +230,15 @@
         </div>
 
         <div class="section">
-            <div class="section-title">Security Protocols</div>
+            <div class="section-title">Sensor Fusion Core</div>
             <div class="grid">
                 <div class="card" onclick="toggleVpn()">
-                    <h3>Port Shield</h3>
-                    <p>Active VPN tunnel blocking 5900, 3389, 5555.</p>
+                    <h3>Advanced Port Shield</h3>
+                    <p>Universal firewall blocking infiltration ports (5900, 3389, 5555, 22, 135, 445) on any network.</p>
                 </div>
                 <div class="card" onclick="scanApps()">
-                    <h3>Risk Scanner</h3>
-                    <p>Audit installed packages for risky permissions.</p>
+                    <h3>Entity Scanner</h3>
+                    <p>Real-time EMF, WiFi, and Bluetooth detection with threat assessment.</p>
                 </div>
             </div>
         </div>
@@ -270,9 +270,9 @@
         let drops = [];
         let speeds = [];
         
-        const CYAN_MAIN = '#0099FF';
+        const CYAN_MAIN = '#00FFCC'; // Alien Cyan
         const CYAN_HEAD = '#FFFFFF';
-        const RED_MAIN = '#ff0033';
+        const RED_MAIN = '#FF0033'; // Spectral Red
         const RED_HEAD = '#FFFFFF';
 
         let isRedMode = localStorage.getItem('spectral_matrix_red_mode') === 'true';

@@ -1,11 +1,8 @@
 package com.spectral.matrix
 
 import android.annotation.SuppressLint
-import android.app.usage.NetworkStatsManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.VpnService
@@ -20,27 +17,29 @@ import androidx.appcompat.app.AppCompatActivity
 import java.util.*
 
 /**
- * SpectralShield Dashboard - The hidden resistance layer.
+ * DashboardActivity - Futuristic Sensor Fusion Interface.
  * 
  * Features:
- * 1. Connection Monitor: Shows active network status.
- * 2. Permission Scanner: Identifies high-risk apps.
- * 3. Port Shield: Toggle for the local VPN port blocker.
+ * 1. Real-time EMF monitoring.
+ * 2. WiFi & Bluetooth entity detection.
+ * 3. Threat assessment based on signal strength and device type.
+ * 4. Advanced Port Shield toggle.
  */
 class DashboardActivity : AppCompatActivity() {
 
     private lateinit var connectionStatus: TextView
-    private lateinit var appListContainer: LinearLayout
-    private lateinit var logContainer: LinearLayout
+    private lateinit var emfValue: TextView
+    private lateinit var entityList: LinearLayout
     private lateinit var vpnToggleButton: Button
     
+    private lateinit var scanner: SensorFusionScanner
     private val handler = Handler(Looper.getMainLooper())
     private val VPN_REQUEST_CODE = 100
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Maintain stealth security
+        // Stealth: Block screenshots and recordings
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
@@ -49,23 +48,38 @@ class DashboardActivity : AppCompatActivity() {
         setContentView(R.layout.activity_dashboard)
 
         connectionStatus = findViewById(R.id.connectionStatus)
-        appListContainer = findViewById(R.id.appListContainer)
-        logContainer = findViewById(R.id.logContainer)
+        emfValue = findViewById(R.id.emfValue)
+        entityList = findViewById(R.id.entityList)
         vpnToggleButton = findViewById(R.id.vpnToggleButton)
 
-        findViewById<Button>(R.id.scanButton).setOnClickListener { scanHighRiskApps() }
         vpnToggleButton.setOnClickListener { toggleVpn() }
         findViewById<Button>(R.id.closeButton).setOnClickListener { finish() }
 
+        // Initialize Sensor Fusion Scanner
+        scanner = SensorFusionScanner(this) { data ->
+            runOnUiThread {
+                updateUI(data)
+            }
+        }
+
         startConnectionMonitor()
-        addLogEntry("SpectralShield initialized. Monitoring active.")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        scanner.start()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        scanner.stop()
     }
 
     private fun startConnectionMonitor() {
         val runnable = object : Runnable {
             override fun run() {
                 updateConnectionInfo()
-                handler.postDelayed(this, 3000)
+                handler.postDelayed(this, 5000)
             }
         }
         handler.post(runnable)
@@ -83,49 +97,74 @@ class DashboardActivity : AppCompatActivity() {
                 capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "Cellular"
                 else -> "Unknown"
             }
-            connectionStatus.text = "Active Link: $type | Secure: ${!capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)}"
+            connectionStatus.text = "LINK STATUS: $type | SECURE: ${!capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)}"
         } else {
-            connectionStatus.text = "Active Link: Disconnected"
+            connectionStatus.text = "LINK STATUS: DISCONNECTED"
         }
     }
 
     @SuppressLint("SetTextI18n")
-    private fun scanHighRiskApps() {
-        appListContainer.removeAllViews()
-        addLogEntry("Scanning installed packages for high-risk permissions...")
-        
-        val pm = packageManager
-        val packages = pm.getInstalledPackages(PackageManager.GET_PERMISSIONS)
-        
-        var riskCount = 0
-        for (pkg in packages) {
-            val permissions = pkg.requestedPermissions ?: continue
-            val highRisk = permissions.filter { 
-                it.contains("ACCESSIBILITY") || 
-                it.contains("SCREEN_CAPTURE") || 
-                it.contains("SYSTEM_ALERT_WINDOW") ||
-                it.contains("RECORD_AUDIO")
+    private fun updateUI(data: SensorFusionScanner.ScannerData) {
+        // Update EMF
+        emfValue.text = String.format("%.2f µT", data.emf)
+        if (data.emf > 100) {
+            emfValue.setTextColor(android.graphics.Color.parseColor("#FF0033")) // Spectral Red
+        } else {
+            emfValue.setTextColor(android.graphics.Color.parseColor("#00FFCC")) // Alien Cyan
+        }
+
+        // Update Entity List
+        entityList.removeAllViews()
+
+        // Add System Events Header
+        val eventHeader = TextView(this)
+        eventHeader.text = "SYSTEM LOGS"
+        eventHeader.setTextColor(android.graphics.Color.parseColor("#444444"))
+        eventHeader.textSize = 10f
+        eventHeader.setPadding(0, 20, 0, 10)
+        entityList.addView(eventHeader)
+
+        data.systemEvents.take(5).forEach { event ->
+            val tv = TextView(this)
+            tv.text = event
+            tv.setTextColor(android.graphics.Color.parseColor("#666666"))
+            tv.textSize = 9f
+            tv.fontFamily = android.graphics.Typeface.MONOSPACE
+            entityList.addView(tv)
+        }
+
+        // Add Detected Entities Header
+        val entityHeader = TextView(this)
+        entityHeader.text = "DETECTED ENTITIES"
+        entityHeader.setTextColor(android.graphics.Color.parseColor("#444444"))
+        entityHeader.textSize = 10f
+        entityHeader.setPadding(0, 30, 0, 10)
+        entityList.addView(entityHeader)
+
+        data.entities.forEach { entity ->
+            val entityView = layoutInflater.inflate(android.R.layout.simple_list_item_2, null)
+            val text1 = entityView.findViewById<TextView>(android.R.id.text1)
+            val text2 = entityView.findViewById<TextView>(android.R.id.text2)
+
+            val threatColor = when (entity.threatLevel) {
+                "CRITICAL" -> android.graphics.Color.parseColor("#FF0033")
+                "HIGH" -> android.graphics.Color.parseColor("#FF9900")
+                "MEDIUM" -> android.graphics.Color.parseColor("#FFFF00")
+                else -> android.graphics.Color.parseColor("#00FFCC")
             }
 
-            if (highRisk.isNotEmpty()) {
-                val appName = pkg.applicationInfo.loadLabel(pm).toString()
-                val tv = TextView(this)
-                tv.text = "⚠️ $appName\n   Risk: ${highRisk.joinToString(", ")}"
-                tv.setTextColor(resources.getColor(android.R.color.holo_red_light))
-                tv.setPadding(0, 10, 0, 10)
-                appListContainer.addView(tv)
-                riskCount++
-            }
+            text1.text = "ID: ${entity.id} | THREAT: ${entity.threatLevel}"
+            text1.setTextColor(threatColor)
+            text1.textSize = 12f
+            text1.fontFamily = android.graphics.Typeface.MONOSPACE
+
+            text2.text = "NAME: ${entity.name}\nTYPE: ${entity.type} | RSSI: ${entity.signalStrength} dBm\nTIME: ${entity.timestamp}\nDATA: ${entity.details}"
+            text2.setTextColor(android.graphics.Color.parseColor("#AAAAAA"))
+            text2.textSize = 9f
+            text2.setPadding(0, 0, 0, 20)
+
+            entityList.addView(entityView)
         }
-        
-        if (riskCount == 0) {
-            val tv = TextView(this)
-            tv.text = "No high-risk apps detected."
-            tv.setTextColor(resources.getColor(android.R.color.holo_green_light))
-            appListContainer.addView(tv)
-        }
-        
-        addLogEntry("Scan complete. $riskCount risk(s) identified.")
     }
 
     private fun toggleVpn() {
@@ -142,18 +181,8 @@ class DashboardActivity : AppCompatActivity() {
         if (requestCode == VPN_REQUEST_CODE && resultCode == RESULT_OK) {
             val intent = Intent(this, SpectralVpnService::class.java)
             startService(intent)
-            vpnToggleButton.text = "Shield Active"
+            vpnToggleButton.text = "SHIELD ACTIVE"
             vpnToggleButton.isEnabled = false
-            addLogEntry("Port Shield active. Blocking 5900, 3389, 5555.")
         }
-    }
-
-    private fun addLogEntry(message: String) {
-        val tv = TextView(this)
-        val time = java.text.SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        tv.text = "[$time] $message"
-        tv.setTextColor(resources.getColor(android.R.color.white))
-        tv.textSize = 12f
-        logContainer.addView(tv, 0)
     }
 }
