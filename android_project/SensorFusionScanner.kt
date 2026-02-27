@@ -14,6 +14,10 @@ import android.hardware.SensorManager
 import android.net.wifi.WifiManager
 import android.util.Log
 
+import android.net.wifi.p2p.WifiP2pDevice
+import android.net.wifi.p2p.WifiP2pManager
+import android.net.wifi.p2p.WifiP2pManager.PeerListListener
+
 /**
  * SensorFusionScanner - Real-time environment analysis.
  * 
@@ -21,20 +25,25 @@ import android.util.Log
  * 1. Magnetometer (EMF)
  * 2. WiFi Scan Results
  * 3. Bluetooth Discovery
+ * 4. WiFi Direct (P2P) Peers
  */
 class SensorFusionScanner(private val context: Context, private val onUpdate: (ScannerData) -> Unit) : SensorEventListener {
 
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+    
+    private val p2pManager = context.getSystemService(Context.WIFI_P2P_SERVICE) as? WifiP2pManager
+    private val p2pChannel = p2pManager?.initialize(context, context.mainLooper, null)
 
     private var currentEmf: Float = 0f
     private val detectedDevices = mutableListOf<DetectedEntity>()
+    private val systemEvents = mutableListOf<String>()
 
     data class DetectedEntity(
         val name: String,
         val id: String,
-        val type: String, // WiFi, BT, etc.
+        val type: String, // WiFi, BT, DIRECT, etc.
         val signalStrength: Int, // RSSI
         val threatLevel: String = "Low",
         val details: String = "",
@@ -46,8 +55,6 @@ class SensorFusionScanner(private val context: Context, private val onUpdate: (S
         val entities: List<DetectedEntity>,
         val systemEvents: List<String>
     )
-
-    private val systemEvents = mutableListOf<String>()
 
     fun start() {
         // EMF Sensor
@@ -64,6 +71,19 @@ class SensorFusionScanner(private val context: Context, private val onUpdate: (S
         context.registerReceiver(btReceiver, btFilter)
         bluetoothAdapter?.startDiscovery()
 
+        // WiFi Direct Scan
+        p2pManager?.discoverPeers(p2pChannel, object : WifiP2pManager.ActionListener {
+            override fun onSuccess() {
+                addSystemEvent("WiFi Direct Discovery Started.")
+            }
+            override fun onFailure(reason: Int) {
+                addSystemEvent("WiFi Direct Discovery Failed: $reason")
+            }
+        })
+        
+        val p2pFilter = IntentFilter(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
+        context.registerReceiver(p2pReceiver, p2pFilter)
+
         addSystemEvent("Sensor Fusion Core Initialized.")
     }
 
@@ -72,8 +92,41 @@ class SensorFusionScanner(private val context: Context, private val onUpdate: (S
         try {
             context.unregisterReceiver(wifiReceiver)
             context.unregisterReceiver(btReceiver)
+            context.unregisterReceiver(p2pReceiver)
         } catch (e: Exception) {}
         bluetoothAdapter?.cancelDiscovery()
+        p2pManager?.stopPeerDiscovery(p2pChannel, null)
+    }
+
+    private val p2pReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION == intent.action) {
+                p2pManager?.requestPeers(p2pChannel) { peers ->
+                    peers.deviceList.forEach { device ->
+                        val entity = DetectedEntity(
+                            name = device.deviceName ?: "P2P Device",
+                            id = device.deviceAddress,
+                            type = "DIRECT",
+                            signalStrength = -50, // P2P doesn't give RSSI easily, using placeholder
+                            details = "Status: ${getDeviceStatus(device.status)}"
+                        )
+                        updateOrAddEntity(entity)
+                    }
+                    notifyUpdate()
+                }
+            }
+        }
+    }
+
+    private fun getDeviceStatus(status: Int): String {
+        return when (status) {
+            WifiP2pDevice.AVAILABLE -> "Available"
+            WifiP2pDevice.INVITED -> "Invited"
+            WifiP2pDevice.CONNECTED -> "Connected"
+            WifiP2pDevice.FAILED -> "Failed"
+            WifiP2pDevice.UNAVAILABLE -> "Unavailable"
+            else -> "Unknown"
+        }
     }
 
     override fun onSensorChanged(event: SensorEvent) {
