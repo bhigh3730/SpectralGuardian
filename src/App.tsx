@@ -5,7 +5,7 @@
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Shield, Radio, Wifi, Bluetooth, Activity, Zap, AlertTriangle, Terminal, Cpu, Globe, X, Trash2, Ban, Pin, Settings, Sliders, Battery, Thermometer, Volume2, VolumeX, CircuitBoard, Cloud } from 'lucide-react';
+import { Shield, Radio, Wifi, Bluetooth, Activity, Zap, AlertTriangle, Terminal, Cpu, Globe, X, Trash2, Ban, Pin, Settings, Sliders, Battery, Thermometer, Volume2, VolumeX, CircuitBoard, Cloud, MapPin } from 'lucide-react';
 
 interface Device {
   id: string;
@@ -13,12 +13,14 @@ interface Device {
   type: 'WIFI' | 'BT' | 'DIRECT' | 'CELL' | 'INTERNAL';
   category: 'DEVICE' | 'ENTITY';
   rssi: number;
+  distance: number; // in meters
   threat: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   details: string;
   timestamp: string;
   isPinned?: boolean;
   isBlacklisted?: boolean;
   frequencyBand?: 'X' | 'K' | 'KA';
+  location?: { lat: number; lng: number };
 }
 
 interface EmfData {
@@ -51,6 +53,8 @@ export default function App() {
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [pendingRefreshRate, setPendingRefreshRate] = useState(60);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [activeProfile, setActiveProfile] = useState<'NONE' | 'DEVICE' | 'ENTITY' | 'INTERNAL'>('NONE');
   
   const audioCtx = useRef<AudioContext | null>(null);
   const oscillator = useRef<OscillatorNode | null>(null);
@@ -92,26 +96,70 @@ export default function App() {
   useEffect(() => {
     if (audioEnabled && oscillator.current && gainNode.current && emfHistory.length > 0) {
       const latestEmf = emfHistory[emfHistory.length - 1].value;
-      // Map EMF to frequency (radar detector style)
-      // Base frequency depends on active bands
-      let baseFreq = 200;
-      if (activeBands.includes('KA')) baseFreq = 800;
-      else if (activeBands.includes('K')) baseFreq = 500;
-      else if (activeBands.includes('X')) baseFreq = 300;
-
-      const freq = baseFreq + (latestEmf * 5);
-      oscillator.current.frequency.setTargetAtTime(freq, audioCtx.current!.currentTime, 0.1);
       
-      // Volume based on intensity
-      const volume = Math.min(latestEmf / 200, 0.1);
-      gainNode.current.gain.setTargetAtTime(volume, audioCtx.current!.currentTime, 0.1);
+      // Find closest device for proximity audio
+      const closestDevice = [...devices].sort((a, b) => a.distance - b.distance)[0];
+      
+      if (closestDevice) {
+        // Update Audio Profile based on closest detection
+        const profile = closestDevice.type === 'INTERNAL' ? 'INTERNAL' : closestDevice.category;
+        setActiveProfile(profile);
+
+        // Waveform Profile
+        if (profile === 'ENTITY') oscillator.current.type = 'square';
+        else if (profile === 'INTERNAL') oscillator.current.type = 'sine';
+        else oscillator.current.type = 'sawtooth';
+
+        // Base frequency depends on active bands
+        let baseFreq = 200;
+        if (activeBands.includes('KA')) baseFreq = 800;
+        else if (activeBands.includes('K')) baseFreq = 500;
+        else if (activeBands.includes('X')) baseFreq = 300;
+
+        // Proximity modulation: closer = higher pitch + faster jitter
+        const proximityMod = Math.max(0, (100 - closestDevice.distance) / 10);
+        const jitter = profile === 'ENTITY' ? (Math.random() - 0.5) * 50 : 0;
+        const freq = baseFreq + (latestEmf * 3) + (proximityMod * 20) + jitter;
+        
+        oscillator.current.frequency.setTargetAtTime(freq, audioCtx.current!.currentTime, 0.05);
+        
+        // Volume based on intensity and proximity
+        const volume = Math.min((latestEmf / 200) + (proximityMod / 50), 0.15);
+        gainNode.current.gain.setTargetAtTime(volume, audioCtx.current!.currentTime, 0.05);
+      } else {
+        setActiveProfile('NONE');
+        gainNode.current.gain.setTargetAtTime(0, audioCtx.current!.currentTime, 0.1);
+      }
     }
-  }, [emfHistory, audioEnabled, activeBands]);
+  }, [emfHistory, audioEnabled, activeBands, devices]);
   
   // Stealth Gesture State
   const rightTaps = useRef(0);
   const lastRightTapTime = useRef(0);
   const gestureTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!isRedMode) return;
+
+    if ("geolocation" in navigator) {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          setLogs(prev => [`GPS ERROR: ${error.message}`, ...prev].slice(0, 5));
+        },
+        { enableHighAccuracy: true }
+      );
+      return () => navigator.geolocation.clearWatch(watchId);
+    } else {
+      setLogs(prev => ["GPS NOT SUPPORTED BY HARDWARE", ...prev].slice(0, 5));
+    }
+  }, [isRedMode]);
 
   // Simulation for Web Preview
   useEffect(() => {
@@ -139,16 +187,24 @@ export default function App() {
         if (blacklist.includes(id) || internalDevices.has(id)) return;
         if (!activeBands.includes(band)) return;
 
+        const rssi = -20 - Math.floor(Math.random() * 70);
+        const distance = Math.pow(10, (-30 - rssi) / 20); // Estimated distance in meters
+
         const newDevice: Device = {
           id,
           name: type === 'INTERNAL' ? `CORE_COMPONENT_${Math.floor(Math.random() * 99)}` : `ENTITY_${Math.floor(Math.random() * 9999)}`,
           type,
           category: type === 'INTERNAL' ? 'DEVICE' : (Math.random() > 0.5 ? 'DEVICE' : 'ENTITY'),
-          rssi: -20 - Math.floor(Math.random() * 70),
+          rssi,
+          distance,
           threat: Math.random() > 0.8 ? 'HIGH' : 'LOW',
           details: type === 'INTERNAL' ? 'SYSTEM HARDWARE DETECTED' : 'TRANSMITTING ENCRYPTED PACKETS',
           timestamp: new Date().toLocaleTimeString(),
-          frequencyBand: band
+          frequencyBand: band,
+          location: {
+            lat: (userLocation?.lat || 34.0522) + (Math.random() - 0.5) * 0.002,
+            lng: (userLocation?.lng || -88.2437) + (Math.random() - 0.5) * 0.002
+          }
         };
 
         setDevices(prev => {
@@ -488,6 +544,14 @@ export default function App() {
                       {audioEnabled ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />}
                       {audioEnabled ? 'AUDIO ACTIVE' : 'AUDIO MUTED'}
                     </button>
+                    {audioEnabled && (
+                      <div className="mt-2 text-center">
+                        <div className="text-[8px] text-white/40 uppercase mb-1">Active Profile</div>
+                        <div className={`text-[10px] font-bold tracking-widest ${activeProfile === 'ENTITY' ? 'text-[#FF0033]' : 'text-[#00FFCC]'}`}>
+                          {activeProfile}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -586,11 +650,31 @@ export default function App() {
                             <div className="text-[10px] text-white/40 font-mono mt-1 uppercase tracking-widest">
                               ID: {device.id} | BAND: {device.frequencyBand} | RSSI: {device.rssi}dBm
                             </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="h-1 w-16 bg-white/5 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full transition-all duration-500 ${device.distance < 10 ? 'bg-[#FF0033]' : 'bg-[#00FFCC]'}`} 
+                                  style={{ width: `${Math.max(5, 100 - device.distance)}%` }} 
+                                />
+                              </div>
+                              <span className="text-[9px] text-white/60 font-mono uppercase">Dist: {device.distance.toFixed(1)}m</span>
+                            </div>
                           </div>
                         </div>
                         
                         {/* Action Buttons */}
                         <div className="flex gap-2">
+                          {device.location && (
+                            <a 
+                              href={`https://www.google.com/maps?q=${device.location.lat},${device.location.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 bg-white/5 text-[#00FFCC] border border-[#00FFCC]/20 rounded-lg hover:bg-[#00FFCC]/10 transition-all"
+                              title="View Location"
+                            >
+                              <MapPin className="w-3 h-3" />
+                            </a>
+                          )}
                           <button onClick={() => togglePinDevice(device.id)} className={`p-2 rounded-lg border transition-all ${device.isPinned ? 'bg-[#00FFCC] text-black border-[#00FFCC]' : 'bg-white/5 text-white/40 border-white/10 hover:text-white'}`}>
                             <Pin className="w-3 h-3" />
                           </button>
@@ -647,6 +731,19 @@ export default function App() {
                     <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                       <div className="h-full bg-[#00FFCC]" style={{ width: '45%' }} />
                     </div>
+                  </div>
+                  <div className="p-4 bg-black/40 rounded-xl border border-white/5">
+                    <div className="flex justify-between items-center">
+                      <div className="text-[8px] text-white/40 uppercase">GPS Status</div>
+                      <div className={`text-[10px] font-bold ${userLocation ? 'text-[#00FFCC]' : 'text-[#FF0033]'}`}>
+                        {userLocation ? 'LOCKED' : 'ACQUIRING...'}
+                      </div>
+                    </div>
+                    {userLocation && (
+                      <div className="text-[8px] text-white/20 font-mono mt-1 text-right">
+                        {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

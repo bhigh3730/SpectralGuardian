@@ -1,5 +1,5 @@
 {
-  "name": "Spectral Matrix",
-  "description": "A stealthy, cyberpunk personal portal with hidden gesture-activated states and Matrix rain visualization.",
-  "requestFramePermissions": []
+  "name": "Spectral Guardian",
+  "description": "Advanced Sensor Fusion Core for device detection, EMF analysis, and spectral monitoring with stealth activation.",
+  "requestFramePermissions": ["geolocation"]
 }
